@@ -534,6 +534,101 @@ ldumpproto(lua_State *L) {
 	return 0;
 }
 
+static int
+ltotable(lua_State *L) {
+	struct sproto *s = lua_touserdata(L, 1);
+	if (s == NULL) {
+		return luaL_argerror(L, 1, "Need a sproto_type object");
+	}
+	lua_newtable(L);
+	lua_newtable(L);  // types
+	lua_newtable(L);  // protocols
+	int i, j;
+	for (i = 0; i < s->type_n; i++) {
+		struct sproto_type *t = &s->type[i];
+		lua_newtable(L);  // type
+		for (j=0;j<t->n;j++) {
+			char array[2] = { 0, 0 };
+			const char * type_name = NULL;
+			struct field *f = &t->f[j];
+			int type = f->type & ~SPROTO_TARRAY;
+			if (f->type & SPROTO_TARRAY) {
+				array[0] = '*';
+			} else {
+				array[0] = 0;
+			}
+			if (type == SPROTO_TSTRUCT) {
+				type_name = f->st->name;
+			} else {
+				switch(type) {
+				case SPROTO_TINTEGER:
+					if (f->extra) {
+						type_name = "decimal";
+					} else {
+						type_name = "integer";
+					}
+					break;
+				case SPROTO_TBOOLEAN:
+					type_name = "boolean";
+					break;
+				case SPROTO_TSTRING:
+					if (f->extra == SPROTO_TSTRING_BINARY)
+						type_name = "binary";
+					else
+						type_name = "string";
+					break;
+				default:
+					type_name = "invalid";
+					break;
+				}
+			}
+			lua_newtable(L);  // property
+			lua_pushstring(L, f->name);
+			lua_setfield(L, -2, "name");
+			lua_pushinteger(L, f->tag);
+			lua_setfield(L, -2, "tag");
+			lua_pushstring(L, array);
+			lua_setfield(L, -2, "array");
+			lua_pushstring(L, type_name);
+			lua_setfield(L, -2, "typename");
+			if (type == SPROTO_TINTEGER && f->extra > 0) {
+				lua_pushinteger(L, f->extra);
+				lua_setfield(L, -2, "extra");
+			}
+			if (f->key >= 0) {
+				lua_pushinteger(L, f->key);
+				lua_setfield(L, -2, "key");
+			}
+			int len = lua_rawlen(L, -2);
+			lua_rawseti(L, -2, len + 1);
+		}
+		lua_setfield(L, -3, t->name);
+	}
+	printf("=== %d protocol ===\n", s->protocol_n);
+	for (i=0;i<s->protocol_n;i++) {
+		struct protocol *p = &s->proto[i];
+		lua_newtable(L);  // protocol
+		lua_newtable(L);  // request
+		lua_newtable(L);  // response
+		lua_pushinteger(L, p->tag);
+		lua_setfield(L, -3, "tag");
+		if (p->p[SPROTO_REQUEST]) {
+			lua_pushstring(L, p->p[SPROTO_REQUEST]->name);
+			lua_setfield(L, -3, "name");
+		}
+		if (p->p[SPROTO_RESPONSE]) {
+			lua_pushstring(L, p->p[SPROTO_RESPONSE]->name);
+			lua_setfield(L, -2, "name");
+		}
+		lua_setfield(L, -3, "RESPONSE");
+		lua_setfield(L, -2, "REQUEST");
+		lua_setfield(L, -2, p->name);
+	}
+	lua_setfield(L, -3, "protocols");
+	lua_setfield(L, -2, "types");
+	return 1;
+}
+
 
 /*
 	string source	/  (lightuserdata , integer)
@@ -763,6 +858,7 @@ luaopen_sproto_core(lua_State *L) {
 		{ "loadproto", lloadproto },
 		{ "saveproto", lsaveproto },
 		{ "default", ldefault },
+		{ "totable", ltotable },
 		{ NULL, NULL },
 	};
 	luaL_newlib(L,l);

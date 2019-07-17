@@ -1,5 +1,6 @@
 local sproto = require "sproto"
 local print_r = require "print_r"
+local util = require "util"
 
 local sp = sproto.parse [[
 .foobar {
@@ -67,3 +68,5 @@ print_r(obj)
 -- core.dumpproto only for debug use
 local core = require "sproto.core"
 core.dumpproto(sp.__cobj)
+
+print(util.tostr(core.totable(sp.__cobj)))

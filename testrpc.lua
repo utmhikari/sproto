@@ -1,4 +1,6 @@
 local sproto = require "sproto"
+local core = require "sproto.core"
+local util = require "util"
 local print_r = require "print_r"
 
 local server_proto = sproto.parse [[
@@ -99,3 +101,5 @@ print("tag =", tag)
 print_r(server_proto:request_decode("foobar", v))
 local v = server_proto:response_encode("foobar", { ok = true })
 print_r(server_proto:response_decode("foobar", v))
+
+print(util.tostr(core.totable(server_proto.__cobj)))

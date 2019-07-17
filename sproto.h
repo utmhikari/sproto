@@ -3,8 +3,55 @@
 
 #include <stddef.h>
 
-struct sproto;
-struct sproto_type;
+#define SPROTO_TARRAY 0x80
+#define CHUNK_SIZE 1000
+#define SIZEOF_LENGTH 4
+#define SIZEOF_HEADER 2
+#define SIZEOF_FIELD 2
+#define SIZEOF_INT64 ((int)sizeof(uint64_t))
+#define SIZEOF_INT32 ((int)sizeof(uint32_t))
+
+struct field {
+	int tag;
+	int type;
+	const char * name;
+	struct sproto_type * st;
+	int key;
+	int extra;
+};
+
+struct sproto_type {
+	const char * name;
+	int n;
+	int base;
+	int maxn;
+	struct field *f;
+};
+
+struct protocol {
+	const char *name;
+	int tag;
+	int confirm;	// confirm == 1 where response nil
+	struct sproto_type * p[2];
+};
+
+struct chunk {
+	struct chunk * next;
+};
+
+struct pool {
+	struct chunk * header;
+	struct chunk * current;
+	int current_used;
+};
+
+struct sproto {
+	struct pool memory;
+	int type_n;
+	int protocol_n;
+	struct sproto_type * type;
+	struct protocol * proto;
+};
 
 #define SPROTO_REQUEST 0
 #define SPROTO_RESPONSE 1
