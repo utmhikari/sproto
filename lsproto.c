@@ -604,7 +604,6 @@ ltotable(lua_State *L) {
 		}
 		lua_setfield(L, -3, t->name);
 	}
-	printf("=== %d protocol ===\n", s->protocol_n);
 	for (i=0;i<s->protocol_n;i++) {
 		struct protocol *p = &s->proto[i];
 		lua_newtable(L);  // protocol
